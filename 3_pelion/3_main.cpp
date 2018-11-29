@@ -1,20 +1,6 @@
-// ----------------------------------------------------------------------------
-// Copyright 2016-2018 ARM Ltd.
-//
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------------------------------------------------------
+#include "select-demo.h"
+#if SELECT_DEMO == DEMO_3
+
 #ifndef MBED_TEST_MODE
 #include "mbed.h"
 #include "simple-mbed-cloud-client.h"
@@ -26,7 +12,7 @@
 #include "LittleFileSystem.h"
 
 // To enable the sensors, uncomment the line below.
-//#define ENABLE_SENSORS
+#define ENABLE_SENSORS
 
 #ifdef ENABLE_SENSORS
 #include "VL53L0X.h"
@@ -48,8 +34,7 @@ NetworkInterface *net;
 // Default block device
 // BlockDevice* bd = BlockDevice::get_default_instance();
 // FATFileSystem fs("sd", bd);
-QSPIFBlockDevice bd(PE_12, PE_13, PE_14, PE_15,PE_10,PE_11,0,8000000);
-SlicingBlockDevice sd(&bd,0,(1024*1024*2));
+QSPIFBlockDevice sd(PE_12, PE_13, PE_14, PE_15,PE_10,PE_11,0,8000000);
 LittleFileSystem fs("sd");
 // FATFileSystem fs("sd");
 
@@ -92,7 +77,7 @@ void update_sensors() {
         printf("VL53L0X [mm]:            %6ld\n", distance);
     } else {
         printf("VL53L0X [mm]:                --\n");
-    }    
+    }
 
     // Temperature sensor
     float temperature = 0.0;
@@ -228,7 +213,7 @@ int main(void) {
     printf("Connected to the network successfully. IP address: %s\n", net->get_ip_address());
 
     // SimpleMbedCloudClient handles registering over LwM2M to Pelion DM
-    SimpleMbedCloudClient client(net, &bd, &fs);
+    SimpleMbedCloudClient client(net, &sd, &fs);
     int client_status = client.init();
     if (client_status != 0) {
         printf("Pelion Client initialization failed (%d)\n", client_status);
@@ -290,3 +275,5 @@ int main(void) {
     eventQueue.dispatch_forever();
 }
 #endif
+
+#endif // SELECT_DEMO
