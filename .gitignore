@@ -1,2 +1,3 @@
 .manifest_tool.json
 .update-certificates/
+node_modules/

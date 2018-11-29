@@ -5,6 +5,6 @@
 #define         DEMO_2          2
 #define         DEMO_3          3
 
-#define         SELECT_DEMO     DEMO_2
+#define         SELECT_DEMO     DEMO_1
 
 #endif // SELECT_DEMO_H_
