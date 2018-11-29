@@ -1,7 +1,6 @@
 #include "select-demo.h"
-#if SELECT_DEMO == DEMO_3
+#if SELECT_DEMO == DEMO_2
 
-#ifndef MBED_TEST_MODE
 #include "mbed.h"
 #include "simple-mbed-cloud-client.h"
 #include "FATFileSystem.h"
@@ -11,10 +10,6 @@
 #define DEVICE_QSPI
 #include "LittleFileSystem.h"
 
-// To enable the sensors, uncomment the line below.
-#define ENABLE_SENSORS
-
-#ifdef ENABLE_SENSORS
 #include "VL53L0X.h"
 // Workaround for compile error
 // SPI is defined in VL53L0X_i2c_platform.h
@@ -22,7 +17,6 @@
 #undef SPI
 #endif
 #include "HTS221Sensor.h"
-#endif /* ENABLE_SENSORS */
 
 // An event queue is a very useful structure to debounce information between contexts (e.g. ISR and normal threads)
 // This is great because things such as network operations are illegal in ISR, so updating a resource in a button's fall() function is not allowed
@@ -31,21 +25,16 @@ EventQueue eventQueue;
 // Default network interface object
 NetworkInterface *net;
 
-// Default block device
-// BlockDevice* bd = BlockDevice::get_default_instance();
-// FATFileSystem fs("sd", bd);
-QSPIFBlockDevice sd(PE_12, PE_13, PE_14, PE_15,PE_10,PE_11,0,8000000);
+QSPIFBlockDevice sd(PE_12, PE_13, PE_14, PE_15, PE_10, PE_11, 0, 8000000);
+SlicingBlockDevice sd(&bd, 0, (1024 * 1024 * 2));
 LittleFileSystem fs("sd");
-// FATFileSystem fs("sd");
 
 // Declaring pointers for access to Pelion Client resources outside of main()
 MbedCloudClientResource *button_res;
 MbedCloudClientResource *pattern_res;
-#ifdef ENABLE_SENSORS
 MbedCloudClientResource *distance_res;
 MbedCloudClientResource *temperature_res;
 MbedCloudClientResource *humidity_res;
-#endif /* ENABLE_SENSORS */
 
 // This function gets triggered by the timer. It's easy to replace it by an InterruptIn and fall() mode on a real button
 void button_press() {
@@ -62,7 +51,6 @@ void heartbeat(){
     led = !led;
 }
 
-#ifdef ENABLE_SENSORS
 static DevI2C devI2c(PB_11,PB_10);
 static DigitalOut shutdown_pin(PC_6);
 static VL53L0X range(&devI2c, &shutdown_pin, PC_7);
@@ -100,7 +88,6 @@ void update_sensors() {
     // Output an empty line for visibility
     printf("\n");
 }
-#endif /* ENABLE_SENSORS */
 
 /**
  * PUT handler
@@ -192,11 +179,9 @@ int main(void) {
         }
     }
 
-#ifdef ENABLE_SENSORS
     range.init_sensor(VL53L0X_DEFAULT_ADDRESS);
     hum_temp.init(NULL);
     hum_temp.enable();
-#endif /* ENABLE_SENSORS */
 
     printf("Connecting to the network using Wifi...\n");
 
@@ -227,7 +212,6 @@ int main(void) {
     button_res->observable(true);
     button_res->attach_notification_callback(button_callback);
 
-#ifdef ENABLE_SENSORS
     distance_res = client.create_resource("3330/0/5700", "distance");
     distance_res->set_value(0);
     distance_res->methods(M2MMethod::GET);
@@ -242,7 +226,6 @@ int main(void) {
     humidity_res->set_value(0);
     humidity_res->methods(M2MMethod::GET);
     humidity_res->observable(true);
-#endif /* ENABLE_SENSORS */
 
     pattern_res = client.create_resource("3201/0/5853", "blink_pattern");
     pattern_res->set_value("500:500:500:500:500:500:500:500");
@@ -266,14 +249,11 @@ int main(void) {
     InterruptIn userButton(USER_BUTTON);
     userButton.fall(eventQueue.event(button_press));
 
-#ifdef ENABLE_SENSORS
     Ticker timer;
     timer.attach(eventQueue.event(update_sensors), 3.0);
-#endif /* ENABLE_SENSORS */
 
     // You can easily run the eventQueue in a separate thread if required
     eventQueue.dispatch_forever();
 }
-#endif
 
 #endif // SELECT_DEMO

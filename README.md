@@ -89,18 +89,40 @@ To exit, press `CTRL+A` then type `:quit`.
 
 ### 1.1 Adding sensors
 
-The board you have is equipped with a lot of sensors.
+The board you have is equipped with a lot of sensors. Let's get some data from the temperature sensor. Under `#include`'s, add:
 
-### 1.1 Adding a new thread
+```cpp
+#include "HTS221Sensor.h"
+```
 
-You can run the stats tracking code in a separate thread. Replace the `int main()` function with:
+And replace the beginning of `main` with:
+
+```cpp
+int main()
+{
+    static DevI2C devI2c(PB_11, PB_10);
+    static HTS221Sensor hum_temp(&devI2c);
+    hum_temp.init(NULL);
+    hum_temp.enable();
+
+    while (true) {
+        float temperature = 0.0;
+        if (hum_temp.get_temperature(&temperature) == 0) {
+            printf("Temperature is %.2f C\n", temperature);
+        }
+        else {
+            printf("Failed to read temperature\n");
+        }
+```
+
+### 1,2 Adding a new thread
+
+Mbed OS contains an RTOS and can spawn new threads. You do this through
 
 ```cpp
 void new_thread_main() {
     while (1) {
-        print_stats();
-
-        Thread::wait(2000);
+        // main loop for the new thread
     }
 }
 
@@ -109,30 +131,33 @@ int main() {
     new_thread.start(&new_thread_main);
 
     while (1) {
-        led1 = !led1;
-
-        Thread::wait(1000);
+        // rest of your code
     }
 }
 ```
 
-Flash this on the board and compare with the previous output. What do you see? Do you see the new thread?
+Rewrite the code so that the temperature sensor is read in a separate thread. Then look at the output. What do you see? Do you see the new thread?
 
 **Assignment:** we use only a fraction of the stack of the new thread, but have allocated 4096 bytes for it. Make the stack size of the new thread smaller. [Here's the documentation](https://os.mbed.com/docs/v5.8/reference/thread.html).
 
-### 1.2 Using event queues
+### 1.3 Using event queues
 
-Mbed OS can also use event queues for scheduling, replace the previous code with:
+Mbed OS can also use event queues for scheduling, this is a very useful construct to do complex scheduling in a single thread. You can do things like:
 
 ```cpp
+void read_temperature() {
+    // temperature reading code
+}
+
 void blink_led() {
-    led1 = !led;
+    // led blinking code
 }
 
 int main() {
     EventQueue ev_queue;
 
     ev_queue.call_every(500, &blink_led);
+    ev_queue.call_every(750, &read_temperature);
     ev_queue.call_every(1000, &print_stats);
 
     ev_queue.dispatch_forever();
@@ -145,3 +170,9 @@ Event queues can also be used to debounce from one context to another. E.g. a `T
 Ticker ledTicker;
 ledTicker.attach(0.5f, ev_queue.event(&blink_led));
 ```
+
+More information in [this blog post](https://os.mbed.com/blog/entry/Simplify-your-code-with-mbed-events/).
+
+## 2. Networking
+
+Mbed OS has a unified networking API, which makes it really easy to write networked applications that run on a wide variety of boards. In addition there's also an [HTTP/HTTPS API](https://os.mbed.com/teams/sandbox/code/http-example/) available.
